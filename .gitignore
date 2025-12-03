@@ -1,0 +1,7 @@
+/target/
+/dist/
+/.pytest_cache/
+/.hypothesis/
+__pycache__/
+*.so
+/GH_TOKEN*

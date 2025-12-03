@@ -1,0 +1,4 @@
+tests/upstream/** linguist-vendored
+licenses/** linguist-vendored
+python/zlib_rust/gzip.py linguist-vendored
+python/zlib_rust/_gzip_streams.py linguist-vendored

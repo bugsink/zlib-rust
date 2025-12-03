@@ -1,0 +1,30 @@
+[build-system]
+requires = ["maturin>=1.9,<2"]
+build-backend = "maturin"
+
+[project]
+name = "zlib-rust"
+version = "0.5.3"
+description = "Python bindings for zlib-rs"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+license-files = ["LICENSE", "licenses/**/*"]
+keywords = ["zlib", "gzip", "deflate", "rust", "compression"]
+
+[project.urls]
+Source = "https://github.com/bugsink/zlib-rust"
+Issues = "https://github.com/bugsink/zlib-rust/issues"
+
+[project.optional-dependencies]
+test = ["pytest>=8", "hypothesis>=6"]
+
+[tool.maturin]
+python-source = "python"
+module-name = "zlib_rust._zlib_rust"
+exclude = ["GH_TOKEN*"]
+
+[tool.pytest.ini_options]
+addopts = "-ra"
+testpaths = ["tests"]
+xfail_strict = true
