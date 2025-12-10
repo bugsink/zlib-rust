@@ -62,7 +62,7 @@ The Trifecta Tech Foundation's work makes this package possible. You can
 [support the foundation](https://trifectatech.org/support/) to help sustain
 zlib-rs and its other public-interest infrastructure projects.
 
-## Alternatives
+## Alternatives (Python 3.16, conditions apply)
 
 You can also use zlib-rs through Python's standard-library `zlib` module.
 CPython 3.16 adds a
