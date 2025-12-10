@@ -80,8 +80,8 @@ class _Compress:
     def __new__(cls):
         raise TypeError("cannot create 'zlib_rust._Compress' instances")
 
-    def __init__(self, level, wbits):
-        self._inner = _native.Encoder(level, wbits)
+    def __init__(self, level, wbits, dictionary):
+        self._inner = _native.Encoder(level, wbits, dictionary)
         self._finished = False
         self._lock = Lock()
 
@@ -123,8 +123,8 @@ class _Decompress:
     def __new__(cls):
         raise TypeError("cannot create 'zlib_rust._Decompress' instances")
 
-    def __init__(self, wbits):
-        self._inner = _native.Decoder(wbits)
+    def __init__(self, wbits, dictionary):
+        self._inner = _native.Decoder(wbits, dictionary)
         self._eof = False
         self._unused_data = b""
         self._unconsumed_tail = b""
@@ -199,11 +199,9 @@ def compressobj(level=Z_DEFAULT_COMPRESSION, method=DEFLATED, wbits=MAX_WBITS,
     if not (-15 <= wbits <= -9 or 8 <= wbits <= 15 or 25 <= wbits <= 31):
         raise ValueError("Invalid initialization option")
     if memLevel != DEF_MEM_LEVEL or strategy != Z_DEFAULT_STRATEGY:
-        raise NotImplementedError("zlib-rs 0.5.3 does not expose safe compression configuration")
-    if _as_bytes(zdict):
-        raise NotImplementedError("zlib-rs 0.5.3 does not expose safe preset dictionaries")
+        raise NotImplementedError("zlib-rs does not expose safe compression configuration")
     result = object.__new__(_Compress)
-    result.__init__(level, 9 if wbits == 8 else wbits)
+    result.__init__(level, 9 if wbits == 8 else wbits, _as_bytes(zdict))
     return result
 
 
@@ -211,10 +209,8 @@ def decompressobj(wbits=MAX_WBITS, zdict=b""):
     wbits = _c_int(wbits)
     if not (wbits == 0 or -15 <= wbits <= -8 or 8 <= wbits <= 15 or 24 <= wbits <= 31 or 40 <= wbits <= 47):
         raise ValueError("Invalid initialization option")
-    if _as_bytes(zdict):
-        raise NotImplementedError("zlib-rs 0.5.3 does not expose safe preset dictionaries")
     result = object.__new__(_Decompress)
-    result.__init__(wbits)
+    result.__init__(wbits, _as_bytes(zdict))
     return result
 
 

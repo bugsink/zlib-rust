@@ -6,7 +6,7 @@ use pyo3::exceptions::{PyException, PyValueError};
 use pyo3::prelude::*;
 use pyo3::pybacked::PyBackedBytes;
 use pyo3::types::PyBytes;
-use zlib_rs::{Deflate, DeflateFlush, Inflate, InflateFlush, Status};
+use zlib_rs::{Deflate, DeflateFlush, Inflate, InflateError, InflateFlush, Status};
 
 create_exception!(_zlib_rust, error, PyException);
 
@@ -35,10 +35,14 @@ struct Encoder {
 #[pymethods]
 impl Encoder {
     #[new]
-    fn new(level: i32, wbits: i32) -> Self {
-        Self {
-            state: Deflate::new(level, wbits > 0, wbits.unsigned_abs() as u8),
+    fn new(level: i32, wbits: i32, dictionary: PyBackedBytes) -> PyResult<Self> {
+        let mut state = Deflate::new(level, wbits > 0, wbits.unsigned_abs() as u8);
+        if !dictionary.is_empty() {
+            state
+                .set_dictionary(dictionary.as_ref())
+                .map_err(|err| error::new_err(err.as_str()))?;
         }
+        Ok(Self { state })
     }
 
     fn process<'py>(
@@ -86,15 +90,20 @@ impl Encoder {
 #[pyclass]
 struct Decoder {
     state: Inflate,
+    dictionary: PyBackedBytes,
 }
 
 #[pymethods]
 impl Decoder {
     #[new]
-    fn new(wbits: i32) -> Self {
-        Self {
-            state: Inflate::new(wbits >= 0, wbits.unsigned_abs() as u8),
+    fn new(wbits: i32, dictionary: PyBackedBytes) -> PyResult<Self> {
+        let mut state = Inflate::new(wbits >= 0, wbits.unsigned_abs() as u8);
+        if wbits < 0 && !dictionary.is_empty() {
+            state
+                .set_dictionary(dictionary.as_ref())
+                .map_err(|err| error::new_err(err.as_str()))?;
         }
+        Ok(Self { state, dictionary })
     }
 
     fn process<'py>(
@@ -120,14 +129,24 @@ impl Decoder {
                 let before_in = self.state.total_in();
                 let before_out = self.state.total_out();
                 let end = input.len().min(offset + (1 << 30));
-                let status = self
-                    .state
-                    .decompress(&input[offset..end], &mut buffer, InflateFlush::NoFlush)
-                    .map_err(|err| error::new_err(err.as_str()))?;
+                let result =
+                    self.state
+                        .decompress(&input[offset..end], &mut buffer, InflateFlush::NoFlush);
                 let consumed = counter_delta(self.state.total_in(), before_in);
                 let written = counter_delta(self.state.total_out(), before_out);
                 offset += consumed;
                 output.extend_from_slice(&buffer[..written]);
+                let status = match result {
+                    Err(InflateError::NeedDict { .. }) if !self.dictionary.is_empty() => {
+                        self.state
+                            .set_dictionary(self.dictionary.as_ref())
+                            .map_err(|err| error::new_err(err.as_str()))?;
+                        continue;
+                    }
+                    result => result.map_err(|err| {
+                        error::new_err(self.state.error_message().unwrap_or(err.as_str()))
+                    })?,
+                };
                 if status == Status::StreamEnd {
                     finished = true;
                     break;
