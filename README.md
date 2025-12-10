@@ -72,7 +72,9 @@ discoverable through `pkg-config` as `libz_rs`, and compile CPython with that
 option. A Python distributor can provide such a build too. Then ordinary
 `import zlib`, including its use by `gzip` and `zipfile`, uses zlib-rs.
 
-That choice belongs to the interpreter build. Your operating system, container
-image, or Python installer may choose another backend; installing an application
+Python 3.16's final release is not scheduled until
+[October 5, 2027](https://peps.python.org/pep-0826/). Even then, that choice
+belongs to the interpreter build. Your operating system, container image, or
+Python installer may choose another backend; installing an application
 dependency cannot change it. This package lets you select zlib-rs for your own
 code while using an existing Python installation, including older Python versions.
