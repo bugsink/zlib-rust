@@ -68,7 +68,7 @@ def crc32(data, value=0, /):
 def adler32_combine(adler1, adler2, len2, /):
     length = _length(len2)
     if length < 0:
-        return 0xffffffff
+        raise ValueError("len2 must be non-negative")
     return _native.adler32_combine(index(adler1) & 0xffffffff, index(adler2) & 0xffffffff, length)
 
 

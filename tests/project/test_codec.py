@@ -45,6 +45,12 @@ def test_combine_checksums_without_original_bytes(first, second):
         assert combine(checksum(first), checksum(second), len(second)) == checksum(first + second)
 
 
+@pytest.mark.parametrize("combine", [zlib.adler32_combine, zlib.crc32_combine])
+def test_combine_rejects_negative_lengths(combine):
+    with pytest.raises(ValueError):
+        combine(1, 1, -1)
+
+
 def test_bounded_decoder_drains_without_losing_trailing_data():
     data = b"large expansion" * 10000
     decoder = zlib.decompressobj()
