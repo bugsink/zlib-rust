@@ -163,17 +163,17 @@ impl Decoder {
 
 #[pyfunction]
 fn adler32(py: Python<'_>, data: PyBackedBytes, value: u32) -> u32 {
-    py.detach(|| zlib_rs::adler32(value, data.as_ref()))
+    py.detach(|| zlib_rs::adler32::adler32(value, data.as_ref()))
 }
 
 #[pyfunction]
 fn crc32(py: Python<'_>, data: PyBackedBytes, value: u32) -> u32 {
-    py.detach(|| zlib_rs::crc32(value, data.as_ref()))
+    py.detach(|| zlib_rs::crc32::crc32(value, data.as_ref()))
 }
 
 #[pyfunction]
 fn adler32_combine(first: u32, second: u32, length: u64) -> u32 {
-    zlib_rs::adler32_combine(first, second, length)
+    zlib_rs::adler32::adler32_combine(first, second, length)
 }
 
 #[pyfunction]
@@ -181,7 +181,7 @@ fn crc32_combine(first: u32, second: u32, length: i64) -> PyResult<u32> {
     if length < 0 {
         return Err(PyValueError::new_err("length must be non-negative"));
     }
-    Ok(zlib_rs::crc32_combine(first, second, length as u64))
+    Ok(zlib_rs::crc32::crc32_combine(first, second, length as u64))
 }
 
 #[pymodule]
