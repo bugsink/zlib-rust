@@ -24,14 +24,14 @@ avoids Python 3.14-only dependencies in the test harness. It is added only to
 the test process's import path and is not shipped in wheels.
 
 The upstream resource gates remain: tests requiring several GiB of memory do
-not run without an explicit memory budget; the reference-count leak test
+not run without an explicit memory budget (`pytest --bigmem=8G`); the reference-count leak test
 requires a debug interpreter. There are no additional blanket skips.
 
 Expected failures are declared centrally in `tests/conftest.py`, restricted to
 specific tests and exception types, and strict: an unexpected pass fails CI.
 In 0.5.3 dictionaries and detailed decoder errors are not exposed by the safe
-API. Non-default compression configuration and stream copying are likewise
-unavailable. Successful format/window combinations are separately tested in
+API. Non-default compression configuration is unavailable through 0.6.7; 0.6.8
+adds it and removes those expectations. Stream copying remains unavailable. Successful format/window combinations are separately tested in
 the project suite so the error-message expectation does not hide their behavior.
 
 `python/zlib_rust/gzip.py` and `_gzip_streams.py` are copied from `Lib/gzip.py`

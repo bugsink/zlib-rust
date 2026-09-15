@@ -6,6 +6,20 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent / "upstream/cpython/harness"))
 
 
+def pytest_addoption(parser):
+    parser.addoption(
+        "--bigmem", help="Memory budget for CPython's large-buffer tests, e.g. 8G"
+    )
+
+
+def pytest_configure(config):
+    budget = config.getoption("--bigmem")
+    if budget:
+        from test import support
+
+        support.set_memlimit(budget)
+
+
 def pytest_collection_modifyitems(items):
     import zlib_rust
 
