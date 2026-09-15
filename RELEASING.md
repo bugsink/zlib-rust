@@ -37,3 +37,23 @@ pyproject.toml; published tags must never move.
 Missing upstream capabilities raise `NotImplementedError`. Tests for them use
 strict expected failures with a precise reason and exception type. Remove the
 expectation in the same upstream update that implements the capability.
+
+
+## Automatic dependency releases
+
+Dependabot checks the Rust dependencies daily, picking up zlib-rs immediately
+and allowing three days for ordinary Rust updates. Test dependencies and
+GitHub Actions are checked weekly. A Dependabot PR is squash-merged only after
+its entire CI run passes for that exact PR head.
+
+The merge workflow explicitly dispatches CI on the resulting main commit.
+After those tests pass, CI calls the release check directly. Ordinary main
+pushes start the same check through workflow_run. These explicit calls avoid
+GitHub's restriction on starting workflows from events created by GITHUB_TOKEN.
+
+The release check aligns package versions with the pinned engine, collects
+dependency licenses, creates the tag and upstream release notes, and explicitly
+dispatches the wheel workflow. A pending engine release is still recognized if
+an unrelated commit followed the dependency update. Tooling-only changes do
+not publish an already aligned engine version. Repeated checks reuse an
+existing tag only when it points at the same source commit.

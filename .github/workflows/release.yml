@@ -33,6 +33,11 @@ jobs:
 
           with open("pyproject.toml", "rb") as file:
               version = tomllib.load(file)["project"]["version"]
+          with open("Cargo.toml", "rb") as file:
+              cargo = tomllib.load(file)
+          base = version.split(".post")[0]
+          if cargo["package"]["version"] != base or cargo["dependencies"]["zlib-rs"]["version"] != "=" + base:
+              raise SystemExit("package version must match the pinned zlib-rs engine")
           expected = f"v{version}"
           actual = os.environ["RELEASE_TAG"]
           if actual != expected:
