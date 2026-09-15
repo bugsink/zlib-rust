@@ -33,7 +33,9 @@ def test_contiguous_buffers(factory):
     assert zlib.adler32(data) == stdlib_zlib.adler32(data)
 
 
-@pytest.mark.parametrize("operation", [zlib.compress, zlib.decompress, zlib.crc32, zlib.adler32])
+@pytest.mark.parametrize(
+    "operation", [zlib.compress, zlib.decompress, zlib.crc32, zlib.adler32]
+)
 def test_noncontiguous_buffer_rejected(operation):
     with pytest.raises(BufferError):
         operation(memoryview(b"abcde")[::2])
@@ -41,8 +43,13 @@ def test_noncontiguous_buffer_rejected(operation):
 
 @given(st.binary(max_size=10000), st.binary(max_size=10000))
 def test_combine_checksums_without_original_bytes(first, second):
-    for checksum, combine in [(zlib.adler32, zlib.adler32_combine), (zlib.crc32, zlib.crc32_combine)]:
-        assert combine(checksum(first), checksum(second), len(second)) == checksum(first + second)
+    for checksum, combine in [
+        (zlib.adler32, zlib.adler32_combine),
+        (zlib.crc32, zlib.crc32_combine),
+    ]:
+        assert combine(checksum(first), checksum(second), len(second)) == checksum(
+            first + second
+        )
 
 
 @pytest.mark.parametrize("combine", [zlib.adler32_combine, zlib.crc32_combine])
@@ -91,9 +98,13 @@ def test_zip_entry_reader_uses_rust_decoder(monkeypatch):
     with ZipFile(buffer, "w", compression=ZIP_DEFLATED) as archive:
         archive.writestr("artifact", data)
     original = zipfile._get_decompressor
-    monkeypatch.setattr(zipfile, "_get_decompressor", lambda method: (
-        zlib.decompressobj(-15) if method == ZIP_DEFLATED else original(method)
-    ))
+    monkeypatch.setattr(
+        zipfile,
+        "_get_decompressor",
+        lambda method: (
+            zlib.decompressobj(-15) if method == ZIP_DEFLATED else original(method)
+        ),
+    )
     with ZipFile(buffer) as archive, archive.open("artifact") as entry:
         assert entry.read(41) == data[:41]
         entry.seek(20)
@@ -102,7 +113,9 @@ def test_zip_entry_reader_uses_rust_decoder(monkeypatch):
 
 def test_independent_streams_work_concurrently():
     inputs = [bytes([i]) * 100000 for i in range(16)]
+
     def round_trip(data):
         return zlib.decompress(zlib.compress(data))
+
     with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
         assert list(pool.map(round_trip, inputs)) == inputs

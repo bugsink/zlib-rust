@@ -58,22 +58,26 @@ def _length(value):
 
 
 def adler32(data, value=1, /):
-    return _native.adler32(_as_bytes(data), index(value) & 0xffffffff)
+    return _native.adler32(_as_bytes(data), index(value) & 0xFFFFFFFF)
 
 
 def crc32(data, value=0, /):
-    return _native.crc32(_as_bytes(data), index(value) & 0xffffffff)
+    return _native.crc32(_as_bytes(data), index(value) & 0xFFFFFFFF)
 
 
 def adler32_combine(adler1, adler2, len2, /):
     length = _length(len2)
     if length < 0:
         raise ValueError("len2 must be non-negative")
-    return _native.adler32_combine(index(adler1) & 0xffffffff, index(adler2) & 0xffffffff, length)
+    return _native.adler32_combine(
+        index(adler1) & 0xFFFFFFFF, index(adler2) & 0xFFFFFFFF, length
+    )
 
 
 def crc32_combine(crc1, crc2, len2, /):
-    return _native.crc32_combine(index(crc1) & 0xffffffff, index(crc2) & 0xffffffff, _length(len2))
+    return _native.crc32_combine(
+        index(crc1) & 0xFFFFFFFF, index(crc2) & 0xFFFFFFFF, _length(len2)
+    )
 
 
 class _Compress:
@@ -89,7 +93,9 @@ class _Compress:
         data = _as_bytes(data)
         with self._lock:
             if self._finished:
-                raise error("Error -2 while compressing data: inconsistent stream state")
+                raise error(
+                    "Error -2 while compressing data: inconsistent stream state"
+                )
             return self._inner.process(data, Z_NO_FLUSH)
 
     def flush(self, mode=Z_FINISH, /):
@@ -191,15 +197,30 @@ class _Decompress:
         return self.copy()
 
 
-def compressobj(level=Z_DEFAULT_COMPRESSION, method=DEFLATED, wbits=MAX_WBITS,
-                memLevel=DEF_MEM_LEVEL, strategy=Z_DEFAULT_STRATEGY, zdict=b""):
-    level, method, wbits, memLevel, strategy = map(_c_int, (level, method, wbits, memLevel, strategy))
-    if not (-1 <= level <= 9 and method == DEFLATED and 1 <= memLevel <= 9 and 0 <= strategy <= 4):
+def compressobj(
+    level=Z_DEFAULT_COMPRESSION,
+    method=DEFLATED,
+    wbits=MAX_WBITS,
+    memLevel=DEF_MEM_LEVEL,
+    strategy=Z_DEFAULT_STRATEGY,
+    zdict=b"",
+):
+    level, method, wbits, memLevel, strategy = map(
+        _c_int, (level, method, wbits, memLevel, strategy)
+    )
+    if not (
+        -1 <= level <= 9
+        and method == DEFLATED
+        and 1 <= memLevel <= 9
+        and 0 <= strategy <= 4
+    ):
         raise ValueError("Invalid initialization option")
     if not (-15 <= wbits <= -9 or 8 <= wbits <= 15 or 25 <= wbits <= 31):
         raise ValueError("Invalid initialization option")
     if memLevel != DEF_MEM_LEVEL or strategy != Z_DEFAULT_STRATEGY:
-        raise NotImplementedError("zlib-rs does not expose safe compression configuration")
+        raise NotImplementedError(
+            "zlib-rs does not expose safe compression configuration"
+        )
     result = object.__new__(_Compress)
     result.__init__(level, 9 if wbits == 8 else wbits, _as_bytes(zdict))
     return result
@@ -207,7 +228,13 @@ def compressobj(level=Z_DEFAULT_COMPRESSION, method=DEFLATED, wbits=MAX_WBITS,
 
 def decompressobj(wbits=MAX_WBITS, zdict=b""):
     wbits = _c_int(wbits)
-    if not (wbits == 0 or -15 <= wbits <= -8 or 8 <= wbits <= 15 or 24 <= wbits <= 31 or 40 <= wbits <= 47):
+    if not (
+        wbits == 0
+        or -15 <= wbits <= -8
+        or 8 <= wbits <= 15
+        or 24 <= wbits <= 31
+        or 40 <= wbits <= 47
+    ):
         raise ValueError("Invalid initialization option")
     result = object.__new__(_Decompress)
     result.__init__(wbits, _as_bytes(zdict))
@@ -219,7 +246,9 @@ def compress(data, /, level=Z_DEFAULT_COMPRESSION, wbits=MAX_WBITS):
     try:
         encoder = compressobj(level=level, wbits=wbits)
     except ValueError as exc:
-        raise error("Error -2 while compressing data: invalid initialization option") from exc
+        raise error(
+            "Error -2 while compressing data: invalid initialization option"
+        ) from exc
     return encoder.compress(data) + encoder.flush()
 
 
@@ -230,7 +259,9 @@ def decompress(data, /, wbits=MAX_WBITS, bufsize=DEF_BUF_SIZE):
     try:
         decoder = decompressobj(wbits)
     except ValueError as exc:
-        raise error("Error -2 while preparing to decompress data: invalid initialization option") from exc
+        raise error(
+            "Error -2 while preparing to decompress data: invalid initialization option"
+        ) from exc
     output = decoder.decompress(data)
     if not decoder.eof:
         raise error("Error -5 while decompressing data: incomplete or truncated stream")
@@ -264,7 +295,9 @@ class _ZlibDecompressor:
             return b""
         result = self._decoder.decompress(self._pending, max(0, max_length))
         self._pending = self._decoder.unconsumed_tail
-        self.needs_input = not self._pending and (max_length < 0 or len(result) < max_length)
+        self.needs_input = not self._pending and (
+            max_length < 0 or len(result) < max_length
+        )
         if self.eof:
             self.needs_input = False
         return result
