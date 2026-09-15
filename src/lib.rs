@@ -111,6 +111,7 @@ impl Decoder {
         py: Python<'py>,
         input: PyBackedBytes,
         max_length: usize,
+        flushing: bool,
     ) -> PyResult<(Bound<'py, PyBytes>, usize, bool)> {
         let (output, consumed, finished) = py.detach(|| {
             let mut output = Vec::new();
@@ -137,6 +138,7 @@ impl Decoder {
                 offset += consumed;
                 output.extend_from_slice(&buffer[..written]);
                 let status = match result {
+                    Err(err) if flushing && err != InflateError::MemError => break,
                     Err(InflateError::NeedDict { .. }) if !self.dictionary.is_empty() => {
                         self.state
                             .set_dictionary(self.dictionary.as_ref())

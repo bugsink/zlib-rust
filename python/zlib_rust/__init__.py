@@ -149,13 +149,13 @@ class _Decompress:
     def unconsumed_tail(self):
         return self._unconsumed_tail
 
-    def _decompress(self, data, max_length):
+    def _decompress(self, data, max_length, flushing=False):
         if self._closed:
             raise error("Error -2 while decompressing data: inconsistent stream state")
         if self._eof:
             self._unused_data += data
             return b""
-        output, consumed, self._eof = self._inner.process(data, max_length)
+        output, consumed, self._eof = self._inner.process(data, max_length, flushing)
         remainder = data[consumed:]
         if self._eof:
             self._unused_data += remainder
@@ -179,7 +179,7 @@ class _Decompress:
         with self._lock:
             if self._closed:
                 return b""
-            result = self._decompress(self._unconsumed_tail, 0)
+            result = self._decompress(self._unconsumed_tail, 0, flushing=True)
             if self._eof:
                 self._closed = True
             return result

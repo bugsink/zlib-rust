@@ -119,3 +119,13 @@ def test_independent_streams_work_concurrently():
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
         assert list(pool.map(round_trip, inputs)) == inputs
+
+
+@pytest.mark.parametrize("backend", [stdlib_zlib, zlib])
+def test_flush_after_wrong_dictionary_returns_remaining_output(backend):
+    encoder = stdlib_zlib.compressobj(zdict=b"shared dictionary")
+    data = encoder.compress(b"shared dictionary" * 100) + encoder.flush()
+    decoder = backend.decompressobj(zdict=b"wrong dictionary")
+    with pytest.raises(backend.error):
+        decoder.decompress(data)
+    assert decoder.flush() == b""
