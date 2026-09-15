@@ -84,8 +84,8 @@ class _Compress:
     def __new__(cls):
         raise TypeError("cannot create 'zlib_rust._Compress' instances")
 
-    def __init__(self, level, wbits, dictionary):
-        self._inner = _native.Encoder(level, wbits, dictionary)
+    def __init__(self, level, wbits, dictionary, mem_level, strategy):
+        self._inner = _native.Encoder(level, wbits, dictionary, mem_level, strategy)
         self._finished = False
         self._lock = Lock()
 
@@ -217,12 +217,10 @@ def compressobj(
         raise ValueError("Invalid initialization option")
     if not (-15 <= wbits <= -9 or 8 <= wbits <= 15 or 25 <= wbits <= 31):
         raise ValueError("Invalid initialization option")
-    if memLevel != DEF_MEM_LEVEL or strategy != Z_DEFAULT_STRATEGY:
-        raise NotImplementedError(
-            "zlib-rs does not expose safe compression configuration"
-        )
     result = object.__new__(_Compress)
-    result.__init__(level, 9 if wbits == 8 else wbits, _as_bytes(zdict))
+    result.__init__(
+        level, 9 if wbits == 8 else wbits, _as_bytes(zdict), memLevel, strategy
+    )
     return result
 
 

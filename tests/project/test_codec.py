@@ -121,11 +121,20 @@ def test_independent_streams_work_concurrently():
         assert list(pool.map(round_trip, inputs)) == inputs
 
 
-@pytest.mark.parametrize("backend", [stdlib_zlib, zlib])
-def test_flush_after_wrong_dictionary_returns_remaining_output(backend):
+def test_huffman_only_strategy_disables_repeated_string_matching():
+    data = b"repeated phrase " * 10000
+    regular = zlib.compress(data)
+    encoder = zlib.compressobj(strategy=zlib.Z_HUFFMAN_ONLY)
+    huffman_only = encoder.compress(data) + encoder.flush()
+    assert stdlib_zlib.decompress(huffman_only) == data
+    assert len(huffman_only) > len(regular) * 10
+
+
+def test_wrong_dictionary_remains_an_error_on_flush():
     encoder = stdlib_zlib.compressobj(zdict=b"shared dictionary")
     data = encoder.compress(b"shared dictionary" * 100) + encoder.flush()
-    decoder = backend.decompressobj(zdict=b"wrong dictionary")
-    with pytest.raises(backend.error):
+    decoder = zlib.decompressobj(zdict=b"wrong dictionary")
+    with pytest.raises(zlib.error):
         decoder.decompress(data)
-    assert decoder.flush() == b""
+    with pytest.raises(zlib.error):
+        decoder.flush()

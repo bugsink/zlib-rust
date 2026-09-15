@@ -6,7 +6,9 @@ use pyo3::exceptions::{PyException, PyValueError};
 use pyo3::prelude::*;
 use pyo3::pybacked::PyBackedBytes;
 use pyo3::types::PyBytes;
-use zlib_rs::{Deflate, DeflateFlush, Inflate, InflateError, InflateFlush, Status};
+use zlib_rs::{
+    Deflate, DeflateConfig, DeflateFlush, Inflate, InflateError, InflateFlush, Status, Strategy,
+};
 
 create_exception!(_zlib_rust, error, PyException);
 
@@ -35,8 +37,22 @@ struct Encoder {
 #[pymethods]
 impl Encoder {
     #[new]
-    fn new(level: i32, wbits: i32, dictionary: PyBackedBytes) -> PyResult<Self> {
-        let mut state = Deflate::new(level, wbits > 0, wbits.unsigned_abs() as u8);
+    fn new(
+        level: i32,
+        wbits: i32,
+        dictionary: PyBackedBytes,
+        mem_level: i32,
+        strategy: i32,
+    ) -> PyResult<Self> {
+        let config = DeflateConfig {
+            level,
+            window_bits: wbits,
+            mem_level,
+            strategy: Strategy::try_from(strategy)
+                .map_err(|_| PyValueError::new_err("Invalid strategy"))?,
+            ..DeflateConfig::default()
+        };
+        let mut state = Deflate::new_with_config(config);
         if !dictionary.is_empty() {
             state
                 .set_dictionary(dictionary.as_ref())
@@ -138,7 +154,8 @@ impl Decoder {
                 offset += consumed;
                 output.extend_from_slice(&buffer[..written]);
                 let status = match result {
-                    Err(err) if flushing && err != InflateError::MemError => break,
+                    // urllib3 flushes after rejecting a trailing gzip member.
+                    Err(InflateError::DataError | InflateError::StreamError) if flushing => break,
                     Err(InflateError::NeedDict { .. }) if !self.dictionary.is_empty() => {
                         self.state
                             .set_dictionary(self.dictionary.as_ref())
