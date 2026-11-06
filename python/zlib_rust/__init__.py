@@ -135,6 +135,7 @@ class _Decompress:
         self._unused_data = b""
         self._unconsumed_tail = b""
         self._closed = False
+        self._failed = False
         self._lock = Lock()
 
     @property
@@ -155,7 +156,13 @@ class _Decompress:
         if self._eof:
             self._unused_data += data
             return b""
-        output, consumed, self._eof = self._inner.process(data, max_length, flushing)
+        try:
+            output, consumed, self._eof = self._inner.process(
+                data, max_length, flushing and self._failed
+            )
+        except error:
+            self._failed = True
+            raise
         remainder = data[consumed:]
         if self._eof:
             self._unused_data += remainder

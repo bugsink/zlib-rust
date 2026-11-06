@@ -138,3 +138,15 @@ def test_wrong_dictionary_remains_an_error_on_flush():
         decoder.decompress(data)
     with pytest.raises(zlib.error):
         decoder.flush()
+
+
+def test_flush_reports_corruption_after_bounded_decompression():
+    payload = b"compressed content" * 10000
+    data = stdlib_zlib.compress(payload)
+    corrupted = data[:-1] + bytes([data[-1] ^ 1])
+    with pytest.raises(stdlib_zlib.error):
+        stdlib_zlib.decompress(corrupted)
+    decoder = zlib.decompressobj()
+    assert decoder.decompress(corrupted, max_length=10) == payload[:10]
+    with pytest.raises(zlib.error):
+        decoder.flush()
