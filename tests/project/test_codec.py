@@ -130,23 +130,42 @@ def test_huffman_only_strategy_disables_repeated_string_matching():
     assert len(huffman_only) > len(regular) * 10
 
 
-def test_wrong_dictionary_remains_an_error_on_flush():
+@pytest.mark.parametrize("backend", [stdlib_zlib, zlib])
+@pytest.mark.parametrize("dictionary", [None, b"wrong dictionary"])
+def test_flush_after_dictionary_error_returns_no_output(backend, dictionary):
     encoder = stdlib_zlib.compressobj(zdict=b"shared dictionary")
     data = encoder.compress(b"shared dictionary" * 100) + encoder.flush()
-    decoder = zlib.decompressobj(zdict=b"wrong dictionary")
-    with pytest.raises(zlib.error):
+    decoder = backend.decompressobj(
+        **({} if dictionary is None else {"zdict": dictionary})
+    )
+    with pytest.raises(backend.error):
         decoder.decompress(data)
-    with pytest.raises(zlib.error):
-        decoder.flush()
+    assert decoder.flush() == b""
+    assert not decoder.eof
 
 
-def test_flush_reports_corruption_after_bounded_decompression():
+@pytest.mark.parametrize("backend", [stdlib_zlib, zlib])
+@pytest.mark.parametrize("max_length", [0, 10])
+def test_flush_returns_output_despite_corrupt_checksum(backend, max_length):
     payload = b"compressed content" * 10000
     data = stdlib_zlib.compress(payload)
     corrupted = data[:-1] + bytes([data[-1] ^ 1])
-    with pytest.raises(stdlib_zlib.error):
-        stdlib_zlib.decompress(corrupted)
-    decoder = zlib.decompressobj()
-    assert decoder.decompress(corrupted, max_length=10) == payload[:10]
-    with pytest.raises(zlib.error):
-        decoder.flush()
+    decoder = backend.decompressobj()
+    if max_length:
+        assert decoder.decompress(corrupted, max_length) == payload[:max_length]
+        assert decoder.flush() == payload[max_length:]
+    else:
+        with pytest.raises(backend.error):
+            decoder.decompress(corrupted)
+        assert decoder.flush() == b""
+    assert not decoder.eof
+    assert decoder.flush() == b""
+
+
+@pytest.mark.parametrize("backend", [stdlib_zlib, zlib])
+def test_flush_after_invalid_gzip_header_returns_no_output(backend):
+    decoder = backend.decompressobj(31)
+    with pytest.raises(backend.error):
+        decoder.decompress(b"trailing garbage")
+    assert decoder.flush() == b""
+    assert not decoder.eof

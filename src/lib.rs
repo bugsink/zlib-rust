@@ -146,16 +146,23 @@ impl Decoder {
                 let before_in = self.state.total_in();
                 let before_out = self.state.total_out();
                 let end = input.len().min(offset + (1 << 30));
-                let result =
-                    self.state
-                        .decompress(&input[offset..end], &mut buffer, InflateFlush::NoFlush);
+                let flush = if flushing && end == input.len() {
+                    InflateFlush::Finish
+                } else {
+                    InflateFlush::SyncFlush
+                };
+                let result = self
+                    .state
+                    .decompress(&input[offset..end], &mut buffer, flush);
                 let consumed = counter_delta(self.state.total_in(), before_in);
                 let written = counter_delta(self.state.total_out(), before_out);
                 offset += consumed;
                 output.extend_from_slice(&buffer[..written]);
                 let status = match result {
-                    // urllib3 flushes after rejecting a trailing gzip member.
-                    Err(InflateError::DataError | InflateError::StreamError) if flushing => break,
+                    // CPython's Decompress.flush returns accumulated output for any
+                    // inflate error (Modules/zlibmodule.c, zlib_Decompress_flush_impl).
+                    // Decompress.decompress still raises for invalid input.
+                    Err(_) if flushing => break,
                     Err(InflateError::NeedDict { .. }) if !self.dictionary.is_empty() => {
                         self.state
                             .set_dictionary(self.dictionary.as_ref())
