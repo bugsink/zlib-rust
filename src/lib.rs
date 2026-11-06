@@ -159,11 +159,9 @@ impl Decoder {
                 offset += consumed;
                 output.extend_from_slice(&buffer[..written]);
                 let status = match result {
-                    // CPython's Decompress.flush returns accumulated output for any
-                    // inflate error (Modules/zlibmodule.c, zlib_Decompress_flush_impl).
-                    // Decompress.decompress still raises for invalid input.
-                    Err(_) if flushing => break,
-                    Err(InflateError::NeedDict { .. }) if !self.dictionary.is_empty() => {
+                    Err(InflateError::NeedDict { .. })
+                        if !flushing && !self.dictionary.is_empty() =>
+                    {
                         self.state
                             .set_dictionary(self.dictionary.as_ref())
                             .map_err(|err| error::new_err(err.as_str()))?;

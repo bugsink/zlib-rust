@@ -17,3 +17,11 @@ by the independent standard-library zlib encoder.
 
 The consumer dependency is pinned in the test extra. Updating that dependency
 does not change the provenance of these copied test bodies.
+
+The chunked trailing-garbage case has a strict expected failure with urllib3
+2.8.0: it flushes a decoder after deciding to discard its invalid input.
+Older CPython hid that error; CPython [gh-156173](https://github.com/python/cpython/issues/156173)
+now raises, and our wrapper follows that fix. urllib3 fixed its caller in
+[#5271](https://github.com/urllib3/urllib3/pull/5271), addressing
+[#5268](https://github.com/urllib3/urllib3/issues/5268). Remove the expectation
+when a released urllib3 includes that fix; an unexpected pass fails CI.

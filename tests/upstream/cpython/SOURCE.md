@@ -38,3 +38,9 @@ the project suite so the error-message expectation does not hide their behavior.
 and `Lib/compression/_common/_streams.py` at the same v3.14.0 commit. Gzip imports
 our codec and its local copy of the stream helpers. Its CLI omits the Python
 3.14-only argparse `color` keyword. Codec and file-format behavior is unchanged.
+
+Two additional tests, `test_decompress_flush_corrupt_stream` and
+`test_decompress_flush_twice`, are copied unchanged from CPython commit
+`54426877bd7ea4e532f5d531a2958d5aa1c29f7c` ([gh-156173](https://github.com/python/cpython/pull/156176)).
+They cover the newer behavior where flush reports corrupt input instead of
+silently returning output. This fixes behavior present in the v3.14.0 baseline.
