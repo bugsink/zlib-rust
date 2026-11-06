@@ -14,13 +14,14 @@ For each release:
    published crate's `.cargo_vcs_info.json`.
 4. Wait for the release workflow's platform wheels and source distribution.
 
-Historical versions 0.5.3 through 0.6.7 build GitHub Actions artifacts only.
+Reconstructed versions 0.5.3 through 0.6.8 build GitHub Actions artifacts only.
+The first public package version is 0.6.8.post1.
 Their commit author and committer dates follow the crate publication dates.
 The GitHub releases are reconstructed now; they do not represent past package
 publication or past maintenance of these Python bindings.
 
 PyPI publication is disabled until repository variable `PYPI_PUBLISHING` equals
-`true`. Only versions at least 0.6.8 may publish, even after that switch is set.
+`true`. Only versions at least 0.6.8.post1 may publish, even after that switch is set.
 Before enabling it, configure a PyPI Trusted Publisher with:
 
 - Project: `zlib-rust`

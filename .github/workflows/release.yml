@@ -43,7 +43,10 @@ jobs:
           if actual != expected:
               raise SystemExit(f"release tag {actual!r} must be {expected!r}")
           with open(os.environ["GITHUB_OUTPUT"], "a") as output:
-              print(f"publish-to-pypi={'true' if tuple(map(int, version.split('.post')[0].split('.'))) >= (0, 6, 8) else 'false'}", file=output)
+              engine = tuple(map(int, base.split(".")))
+              post = int(version.partition(".post")[2] or "0")
+              public = engine > (0, 6, 8) or (engine == (0, 6, 8) and post >= 1)
+              print(f"publish-to-pypi={'true' if public else 'false'}", file=output)
           PY
 
   linux:
