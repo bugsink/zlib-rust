@@ -40,6 +40,14 @@ strict expected failures with a precise reason and exception type. Remove the
 expectation in the same upstream update that implements the capability.
 
 
+Decompressor flush errors follow [CPython gh-156173](https://github.com/python/cpython/pull/156176).
+urllib3's [corresponding fix](https://github.com/urllib3/urllib3/pull/5271)
+stops flushing a decoder after discarding invalid trailing gzip data. These
+are the upstream behaviors we align with. urllib3 2.8.0 predates its fix, so
+the affected integration test has a strict expected failure until a released
+urllib3 includes it.
+
+
 ## Automatic dependency releases
 
 Dependabot checks the Rust dependencies daily, picking up zlib-rs immediately
