@@ -20,9 +20,9 @@ Their commit author and committer dates follow the crate publication dates.
 The GitHub releases are reconstructed now; they do not represent past package
 publication or past maintenance of these Python bindings.
 
-PyPI publication is disabled until repository variable `PYPI_PUBLISHING` equals
-`true`. Only versions at least 0.6.8.post1 may publish, even after that switch is set.
-Before enabling it, configure a PyPI Trusted Publisher with:
+Only versions at least 0.6.8.post2 may publish to PyPI. Publication waits for
+approval from a required reviewer on the GitHub `pypi` environment.
+The PyPI Trusted Publisher is configured with:
 
 - Project: `zlib-rust`
 - Owner: `bugsink`
@@ -30,9 +30,9 @@ Before enabling it, configure a PyPI Trusted Publisher with:
 - Workflow: `release.yml`
 - GitHub environment: `pypi`
 
-The matching GitHub environment can require a reviewer. No PyPI token belongs
-in this repository. After setup, dispatch `release.yml` with the existing tag
-to build and publish the first public release. A tag must match the version in
+The matching GitHub environment requires a reviewer. No PyPI token belongs
+in this repository. Dispatch `release.yml` with the existing tag to build and
+queue publication for approval. A tag must match the version in
 pyproject.toml; published tags must never move.
 
 Missing upstream capabilities raise `NotImplementedError`. Tests for them use

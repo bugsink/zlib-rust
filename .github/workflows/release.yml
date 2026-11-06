@@ -49,7 +49,7 @@ jobs:
               print(f"rust-toolchain={rust}", file=output)
               engine = tuple(map(int, base.split(".")))
               post = int(version.partition(".post")[2] or "0")
-              public = engine > (0, 6, 8) or (engine == (0, 6, 8) and post >= 1)
+              public = engine > (0, 6, 8) or (engine == (0, 6, 8) and post >= 2)
               print(f"publish-to-pypi={'true' if public else 'false'}", file=output)
           PY
 
@@ -180,7 +180,7 @@ jobs:
           path: dist
 
   publish:
-    if: needs.version.outputs.publish-to-pypi == 'true' && vars.PYPI_PUBLISHING == 'true'
+    if: needs.version.outputs.publish-to-pypi == 'true'
     runs-on: ubuntu-latest
     needs: [version, linux, musllinux, windows, macos, sdist]
     environment: pypi
