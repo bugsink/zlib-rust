@@ -1,5 +1,8 @@
 # zlib-rust
 
+<img src="https://raw.githubusercontent.com/bugsink/zlib-rust/main/zlib-rust-logo.png"
+     alt="zlib-rust logo" width="128" align="right">
+
 Python bindings for the Trifecta Tech Foundation's
 [`zlib-rs`](https://github.com/trifectatechfoundation/zlib-rs), a fast Rust
 implementation of zlib.
