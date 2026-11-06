@@ -15,7 +15,7 @@ For each release:
 4. Wait for the release workflow's platform wheels and source distribution.
 
 Reconstructed versions 0.5.3 through 0.6.8 build GitHub Actions artifacts only.
-The first public package version is 0.6.8.post1.
+The first public package version is 0.6.8.post2.
 Their commit author and committer dates follow the crate publication dates.
 The GitHub releases are reconstructed now; they do not represent past package
 publication or past maintenance of these Python bindings.
