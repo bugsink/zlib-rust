@@ -67,17 +67,13 @@ zlib-rs and its other public-interest infrastructure projects.
 
 ## Alternatives (Python 3.16, conditions apply)
 
-You can also use zlib-rs through Python's standard-library `zlib` module.
-CPython 3.16 adds a
-[`--with-zlib=zlib-rs` build option](https://docs.python.org/3.16/using/configure.html#cmdoption-with-zlib).
-Install zlib-rs's C-compatible library (version 0.6.0 or newer), make it
-discoverable through `pkg-config` as `libz_rs`, and compile CPython with that
-option. A Python distributor can provide such a build too. Then ordinary
-`import zlib`, including its use by `gzip` and `zipfile`, uses zlib-rs.
+From Python 3.16 onwards you can also use zlib-rs through Python's
+standard-library `zlib` module.  CPython 3.16 adds a [`--with-zlib=zlib-rs`
+build option](https://docs.python.org/3.16/using/configure.html#cmdoption-with-zlib).
 
-Python 3.16's final release is not scheduled until
-[October 5, 2027](https://peps.python.org/pep-0826/). Even then, that choice
-belongs to the interpreter build. Your operating system, container image, or
-Python installer may choose another backend; installing an application
-dependency cannot change it. This package lets you select zlib-rs for your own
-code while using an existing Python installation, including older Python versions.
+That's great, but Python 3.16 doesn't exist yet, and you'd depend on the
+choices of your Python distributor (often: Linux distributions, container
+images, or Python installers).
+
+This package lets you select zlib-rs for your own code while using an existing
+Python installation, including older Python versions.
