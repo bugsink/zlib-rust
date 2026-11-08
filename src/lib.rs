@@ -131,6 +131,7 @@ impl Decoder {
     ) -> PyResult<(Bound<'py, PyBytes>, usize, bool)> {
         let (output, consumed, finished) = py.detach(|| {
             let mut output = Vec::new();
+            let mut buffer = [0u8; 16384];
             let mut offset = 0;
             let mut finished = false;
             loop {
@@ -142,7 +143,6 @@ impl Decoder {
                 if remaining == 0 {
                     break;
                 }
-                let mut buffer = vec![0u8; remaining];
                 let before_in = self.state.total_in();
                 let before_out = self.state.total_out();
                 let end = input.len().min(offset + (1 << 30));
@@ -151,9 +151,9 @@ impl Decoder {
                 } else {
                     InflateFlush::SyncFlush
                 };
-                let result = self
-                    .state
-                    .decompress(&input[offset..end], &mut buffer, flush);
+                let result =
+                    self.state
+                        .decompress(&input[offset..end], &mut buffer[..remaining], flush);
                 let consumed = counter_delta(self.state.total_in(), before_in);
                 let written = counter_delta(self.state.total_out(), before_out);
                 offset += consumed;
