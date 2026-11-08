@@ -50,3 +50,54 @@ def test_upstream_compression_strategies(strategy):
         assert part, "complete input must finish or produce output"
         chunks.append(part)
     assert b"".join(chunks) == expected
+
+
+@pytest.mark.parametrize(
+    "filename, wbits, limit",
+    [("window-match-bug.zraw", -10, 402), ("op-len-edge-case.zraw", -9, 266)],
+)
+def test_small_window_regressions(filename, wbits, limit):
+    data = (ROOT / filename).read_bytes()
+    expected = cpython_zlib.decompress(data, wbits)
+    if filename == "op-len-edge-case.zraw":
+        assert expected == (ROOT / "op-len-edge-case.dat").read_bytes()
+    decoder = zlib.decompressobj(wbits)
+    chunks = []
+    pending = data
+    while not decoder.eof:
+        chunk = decoder.decompress(pending, limit)
+        assert len(chunk) <= limit
+        chunks.append(chunk)
+        remainder = decoder.unconsumed_tail
+        assert chunk or decoder.eof or len(remainder) < len(pending)
+        pending = remainder
+    assert b"".join(chunks) == expected
+
+
+def test_last_byte_after_full_output_buffer():
+    # Upstream chunked_output_rs: a 32-byte output buffer, then the final byte.
+    data = bytes([99, 96, 192, 11, 24, 25, 0])
+    expected = cpython_zlib.decompress(data, -15)
+    assert len(expected) == 33
+    decoder = zlib.decompressobj(-15)
+    first = decoder.decompress(data, 32)
+    assert first == expected[:32]
+    assert not decoder.eof
+    last = decoder.decompress(decoder.unconsumed_tail, 1)
+    assert last == expected[32:]
+    assert decoder.eof
+
+
+@pytest.mark.parametrize(
+    "filename",
+    [
+        "zlib-ng/CVE-2018-25032/default.txt",
+        "zlib-ng/CVE-2018-25032/fixed.txt",
+        "zlib-ng/GH-382/defneg3.dat",
+    ],
+)
+def test_low_memory_compression_regressions(filename):
+    data = (ROOT / filename).read_bytes()
+    encoder = zlib.compressobj(wbits=15, memLevel=1)
+    compressed = encoder.compress(data) + encoder.flush()
+    assert cpython_zlib.decompress(compressed) == data
