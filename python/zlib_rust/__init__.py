@@ -247,7 +247,7 @@ def compress(data, /, level=Z_DEFAULT_COMPRESSION, wbits=MAX_WBITS):
         raise error(
             "Error -2 while compressing data: invalid initialization option"
         ) from exc
-    return encoder.compress(data) + encoder.flush()
+    return encoder._inner.process(data, Z_FINISH)
 
 
 def decompress(data, /, wbits=MAX_WBITS, bufsize=DEF_BUF_SIZE):
