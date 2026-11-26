@@ -33,6 +33,8 @@ Z_FINISH = 4
 Z_BLOCK = 5
 Z_TREES = 6
 
+_NO_DICTIONARY = object()
+
 
 def _as_bytes(data):
     if isinstance(data, bytes):
@@ -203,7 +205,7 @@ def compressobj(
     wbits=MAX_WBITS,
     memLevel=DEF_MEM_LEVEL,
     strategy=Z_DEFAULT_STRATEGY,
-    zdict=b"",
+    zdict=_NO_DICTIONARY,
 ):
     level, method, wbits, memLevel, strategy = map(
         _c_int, (level, method, wbits, memLevel, strategy)
@@ -218,13 +220,12 @@ def compressobj(
     if not (-15 <= wbits <= -9 or 8 <= wbits <= 15 or 25 <= wbits <= 31):
         raise ValueError("Invalid initialization option")
     result = object.__new__(_Compress)
-    result.__init__(
-        level, 9 if wbits == 8 else wbits, _as_bytes(zdict), memLevel, strategy
-    )
+    dictionary = None if zdict is _NO_DICTIONARY else _as_bytes(zdict)
+    result.__init__(level, 9 if wbits == 8 else wbits, dictionary, memLevel, strategy)
     return result
 
 
-def decompressobj(wbits=MAX_WBITS, zdict=b""):
+def decompressobj(wbits=MAX_WBITS, zdict=_NO_DICTIONARY):
     wbits = _c_int(wbits)
     if not (
         wbits in (0, 16, 32)
@@ -235,7 +236,8 @@ def decompressobj(wbits=MAX_WBITS, zdict=b""):
     ):
         raise ValueError("Invalid initialization option")
     result = object.__new__(_Decompress)
-    result.__init__(wbits, _as_bytes(zdict))
+    dictionary = None if zdict is _NO_DICTIONARY else _as_bytes(zdict)
+    result.__init__(wbits, dictionary)
     return result
 
 
@@ -269,7 +271,7 @@ def decompress(data, /, wbits=MAX_WBITS, bufsize=DEF_BUF_SIZE):
 class _ZlibDecompressor:
     """Retain unconsumed input for CPython's gzip file reader."""
 
-    def __init__(self, wbits=MAX_WBITS, zdict=b""):
+    def __init__(self, wbits=MAX_WBITS, zdict=_NO_DICTIONARY):
         self._decoder = decompressobj(wbits, zdict)
         self._pending = b""
         self.needs_input = True

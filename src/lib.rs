@@ -40,7 +40,7 @@ impl Encoder {
     fn new(
         level: i32,
         wbits: i32,
-        dictionary: PyBackedBytes,
+        dictionary: Option<PyBackedBytes>,
         mem_level: i32,
         strategy: i32,
     ) -> PyResult<Self> {
@@ -53,10 +53,10 @@ impl Encoder {
             ..DeflateConfig::default()
         };
         let mut state = Deflate::new_with_config(config);
-        if !dictionary.is_empty() {
+        if let Some(dictionary) = dictionary {
             state
                 .set_dictionary(dictionary.as_ref())
-                .map_err(|err| error::new_err(err.as_str()))?;
+                .map_err(|err| PyValueError::new_err(err.as_str()))?;
         }
         Ok(Self { state })
     }
@@ -106,18 +106,20 @@ impl Encoder {
 #[pyclass]
 struct Decoder {
     state: Inflate,
-    dictionary: PyBackedBytes,
+    dictionary: Option<PyBackedBytes>,
 }
 
 #[pymethods]
 impl Decoder {
     #[new]
-    fn new(wbits: i32, dictionary: PyBackedBytes) -> PyResult<Self> {
+    fn new(wbits: i32, dictionary: Option<PyBackedBytes>) -> PyResult<Self> {
         let mut state = Inflate::new(wbits >= 0, wbits.unsigned_abs() as u8);
-        if wbits < 0 && !dictionary.is_empty() {
-            state
-                .set_dictionary(dictionary.as_ref())
-                .map_err(|err| error::new_err(err.as_str()))?;
+        if wbits < 0 {
+            if let Some(dictionary) = &dictionary {
+                state
+                    .set_dictionary(dictionary.as_ref())
+                    .map_err(|err| error::new_err(err.as_str()))?;
+            }
         }
         Ok(Self { state, dictionary })
     }
@@ -160,10 +162,10 @@ impl Decoder {
                 output.extend_from_slice(&buffer[..written]);
                 let status = match result {
                     Err(InflateError::NeedDict { .. })
-                        if !flushing && !self.dictionary.is_empty() =>
+                        if !flushing && self.dictionary.is_some() =>
                     {
                         self.state
-                            .set_dictionary(self.dictionary.as_ref())
+                            .set_dictionary(self.dictionary.as_deref().unwrap())
                             .map_err(|err| error::new_err(err.as_str()))?;
                         continue;
                     }

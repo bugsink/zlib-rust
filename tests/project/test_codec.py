@@ -193,6 +193,29 @@ def test_huffman_only_strategy_disables_repeated_string_matching():
 
 
 @pytest.mark.parametrize("module", [zlib, stdlib_zlib])
+@pytest.mark.parametrize("dictionary", [b"", b"preset dictionary"])
+def test_gzip_compressor_rejects_explicit_dictionary(module, dictionary):
+    with pytest.raises(ValueError):
+        module.compressobj(wbits=31, zdict=dictionary)
+    encoder = module.compressobj(wbits=31)
+    assert stdlib_zlib.decompress(encoder.flush(), wbits=31) == b""
+
+
+@pytest.mark.parametrize("module", [zlib, stdlib_zlib])
+def test_zlib_stream_can_require_an_empty_dictionary(module):
+    payload = b"empty preset dictionary"
+    # FDICT declares a dictionary with Adler-32 = 1, the empty dictionary.
+    header = b"\x78\x20\x00\x00\x00\x01"
+    compressed = header + stdlib_zlib.compress(payload, wbits=-15)
+    compressed += stdlib_zlib.adler32(payload).to_bytes(4, "big")
+    decoder = module.decompressobj(zdict=b"")
+    assert decoder.decompress(compressed) == payload
+    assert decoder.eof
+    with pytest.raises(module.error):
+        module.decompressobj().decompress(compressed)
+
+
+@pytest.mark.parametrize("module", [zlib, stdlib_zlib])
 def test_no_flush_is_a_noop_after_finishing_compression(module):
     encoder = module.compressobj()
     payload = b"finished stream"
