@@ -1,6 +1,7 @@
 import concurrent.futures
 import gzip as stdlib_gzip
 import io
+import threading
 import zlib as stdlib_zlib
 from zipfile import ZipFile, ZIP_DEFLATED
 
@@ -146,6 +147,27 @@ def test_independent_streams_work_concurrently():
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
         assert list(pool.map(round_trip, inputs)) == inputs
+
+
+def test_gzip_decoder_can_be_drained_concurrently():
+    payload = b"a" * 1000000
+    decoder = zlib._ZlibDecompressor()
+    assert decoder.decompress(stdlib_zlib.compress(payload), 0) == b""
+    barrier = threading.Barrier(8)
+
+    def drain():
+        total = 0
+        barrier.wait(timeout=10)
+        while True:
+            try:
+                block = decoder.decompress(b"", 37)
+            except EOFError:
+                return total
+            assert block == b"a" * len(block)
+            total += len(block)
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
+        assert sum(pool.map(lambda _: drain(), range(8))) == len(payload)
 
 
 def test_huffman_only_strategy_disables_repeated_string_matching():

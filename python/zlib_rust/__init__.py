@@ -273,6 +273,7 @@ class _ZlibDecompressor:
         self._decoder = decompressobj(wbits, zdict)
         self._pending = b""
         self.needs_input = True
+        self._lock = Lock()
 
     @property
     def eof(self):
@@ -283,17 +284,18 @@ class _ZlibDecompressor:
         return self._decoder.unused_data
 
     def decompress(self, data, max_length=-1):
-        if self.eof:
-            raise EOFError("End of stream already reached")
         data = _as_bytes(data)
         max_length = _length(max_length)
-        self._pending += data
-        if max_length == 0:
+        with self._lock:
+            if self.eof:
+                raise EOFError("End of stream already reached")
+            self._pending += data
+            if max_length == 0:
+                self.needs_input = not self._pending
+                return b""
+            result = self._decoder.decompress(self._pending, max(0, max_length))
+            self._pending = self._decoder.unconsumed_tail
             self.needs_input = not self._pending
-            return b""
-        result = self._decoder.decompress(self._pending, max(0, max_length))
-        self._pending = self._decoder.unconsumed_tail
-        self.needs_input = not self._pending
-        if self.eof:
-            self.needs_input = False
-        return result
+            if self.eof:
+                self.needs_input = False
+            return result
