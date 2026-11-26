@@ -157,7 +157,15 @@ class _Decompress:
         if self._eof:
             self._unused_data += data
             return b""
-        output, consumed, self._eof = self._inner.process(data, max_length, flushing)
+        try:
+            output, consumed, self._eof = self._inner.process(
+                data, max_length, flushing
+            )
+        except error:
+            consumed = self._inner.error_consumed
+            if consumed is not None:
+                self._unconsumed_tail = data[consumed:]
+            raise
         remainder = data[consumed:]
         if self._eof:
             self._unused_data += remainder

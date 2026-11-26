@@ -107,6 +107,7 @@ impl Encoder {
 struct Decoder {
     state: Inflate,
     dictionary: Option<PyBackedBytes>,
+    error_consumed: Option<usize>,
 }
 
 #[pymethods]
@@ -121,7 +122,16 @@ impl Decoder {
                     .map_err(|err| error::new_err(err.as_str()))?;
             }
         }
-        Ok(Self { state, dictionary })
+        Ok(Self {
+            state,
+            dictionary,
+            error_consumed: None,
+        })
+    }
+
+    #[getter]
+    fn error_consumed(&self) -> Option<usize> {
+        self.error_consumed
     }
 
     fn process<'py>(
@@ -131,6 +141,7 @@ impl Decoder {
         max_length: usize,
         flushing: bool,
     ) -> PyResult<(Bound<'py, PyBytes>, usize, bool)> {
+        self.error_consumed = None;
         let (output, consumed, finished) = py.detach(|| {
             let mut output = Vec::new();
             let mut buffer = [0u8; 16384];
@@ -169,9 +180,15 @@ impl Decoder {
                             .map_err(|err| error::new_err(err.as_str()))?;
                         continue;
                     }
-                    result => result.map_err(|err| {
-                        error::new_err(self.state.error_message().unwrap_or(err.as_str()))
-                    })?,
+                    Err(err) => {
+                        // CPython saves unconsumed input for inflate errors,
+                        // but not when installing a supplied dictionary fails.
+                        self.error_consumed = Some(offset);
+                        return Err(error::new_err(
+                            self.state.error_message().unwrap_or(err.as_str()),
+                        ));
+                    }
+                    Ok(status) => status,
                 };
                 if status == Status::StreamEnd {
                     finished = true;

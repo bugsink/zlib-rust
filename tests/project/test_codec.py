@@ -271,6 +271,39 @@ def test_flush_after_dictionary_error_raises(dictionary):
         decoder.flush()
 
 
+@pytest.mark.parametrize("wbits", [15, 31])
+@pytest.mark.parametrize("during_flush", [False, True])
+def test_decoder_preserves_unconsumed_input_after_trailer_error(wbits, during_flush):
+    payload = b"checked stream" * 100
+    compressed = stdlib_zlib.compress(payload, wbits=wbits)
+    corrupted = compressed[:-1] + bytes([compressed[-1] ^ 1]) + b"next message"
+    decoder = zlib.decompressobj(wbits)
+    if during_flush:
+        assert decoder.decompress(corrupted, 1) == payload[:1]
+        with pytest.raises(zlib.error):
+            decoder.flush()
+    else:
+        with pytest.raises(zlib.error):
+            decoder.decompress(corrupted)
+    assert decoder.unconsumed_tail == b"next message"
+    assert decoder.unused_data == b""
+    assert not decoder.eof
+
+
+@pytest.mark.parametrize("module", [zlib, stdlib_zlib])
+@pytest.mark.parametrize("wrong_dictionary", [False, True])
+def test_dictionary_error_preserves_input_like_cpython(module, wrong_dictionary):
+    encoder = stdlib_zlib.compressobj(zdict=b"correct dictionary")
+    compressed = encoder.compress(b"correct dictionary" * 100) + encoder.flush()
+    compressed += b"next message"
+    decoder = module.decompressobj(**({"zdict": b"wrong"} if wrong_dictionary else {}))
+    with pytest.raises(module.error):
+        decoder.decompress(compressed)
+    # CPython saves input for a missing dictionary, but skips that update
+    # when installing a supplied dictionary fails.
+    assert decoder.unconsumed_tail == (b"" if wrong_dictionary else compressed[6:])
+
+
 @pytest.mark.parametrize("max_length", [0, 10])
 def test_flush_reports_corrupt_checksum(max_length):
     # Follow CPython gh-156173, which fixes silent corruption in flush().
