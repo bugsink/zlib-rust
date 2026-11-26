@@ -37,7 +37,7 @@ _NO_DICTIONARY = object()
 
 
 def _as_bytes(data):
-    if isinstance(data, bytes):
+    if type(data) is bytes:
         return data
     view = memoryview(data)
     if not view.c_contiguous:

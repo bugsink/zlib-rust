@@ -47,6 +47,38 @@ def test_contiguous_buffers(factory):
     assert zlib.adler32(data) == stdlib_zlib.adler32(data)
 
 
+class BytesWithOverrides(bytes):
+    def __getitem__(self, key):
+        raise AssertionError("use the buffer, not Python slicing")
+
+    def __radd__(self, other):
+        raise AssertionError("use the buffer, not Python concatenation")
+
+    def __bytes__(self):
+        raise AssertionError("use the buffer, not __bytes__")
+
+
+@pytest.mark.parametrize("module", [zlib, stdlib_zlib])
+def test_decoder_reads_the_buffer_of_a_bytes_subclass(module):
+    payload = b"buffer contents"
+    compressed = BytesWithOverrides(stdlib_zlib.compress(payload) + b"trailer")
+    decoder = module.decompressobj()
+    first = decoder.decompress(compressed, 3)
+    assert first + decoder.decompress(decoder.unconsumed_tail) == payload
+    assert decoder.eof
+    assert decoder.unused_data == b"trailer"
+
+
+def test_gzip_decoder_reads_the_buffer_of_a_bytes_subclass():
+    payload = b"buffer contents"
+    compressed = BytesWithOverrides(stdlib_zlib.compress(payload) + b"trailer")
+    decoder = zlib._ZlibDecompressor()
+    first = decoder.decompress(compressed, 3)
+    assert first + decoder.decompress(b"") == payload
+    assert decoder.eof
+    assert decoder.unused_data == b"trailer"
+
+
 @pytest.mark.parametrize(
     "operation", [zlib.compress, zlib.decompress, zlib.crc32, zlib.adler32]
 )
