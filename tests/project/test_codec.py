@@ -81,6 +81,33 @@ def test_gzip_reader_handles_concatenated_members_in_bounded_reads(factory):
     assert b"".join(chunks) == b"a" * 10000 + b"b" * 10000
 
 
+def test_gzip_decoder_requests_input_after_sync_flush():
+    payload = b"a" * io.DEFAULT_BUFFER_SIZE
+    encoder = stdlib_zlib.compressobj(wbits=-15)
+    compressed = encoder.compress(payload) + encoder.flush(stdlib_zlib.Z_SYNC_FLUSH)
+    decoder = zlib._ZlibDecompressor(wbits=-15)
+
+    assert decoder.decompress(compressed, len(payload)) == payload
+    assert decoder.needs_input
+    assert not decoder.eof
+    assert decoder.decompress(encoder.compress(b"tail") + encoder.flush()) == b"tail"
+    assert decoder.eof
+
+
+def test_gzip_reader_continues_after_sync_flush_at_read_boundary(monkeypatch):
+    payload = b"a" * io.DEFAULT_BUFFER_SIZE
+    encoder = stdlib_zlib.compressobj(wbits=31)
+    prefix = encoder.compress(payload) + encoder.flush(stdlib_zlib.Z_SYNC_FLUSH)
+    compressed = prefix + encoder.compress(b"tail") + encoder.flush()
+    # Exclude the ten-byte gzip header from the first compressed read.
+    monkeypatch.setattr(gzip, "READ_BUFFER_SIZE", len(prefix) - 10)
+
+    with gzip.GzipFile(fileobj=io.BytesIO(compressed), mode="rb") as reader:
+        assert reader.read(len(payload)) == payload
+        assert reader.read(len(payload)) == b"tail"
+        assert reader.read(len(payload)) == b""
+
+
 def test_gzip_storage_writer_is_readable_by_stdlib():
     stream = io.BytesIO()
     with gzip.GzipFile(fileobj=stream, mode="wb", mtime=0) as writer:

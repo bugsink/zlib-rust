@@ -293,9 +293,7 @@ class _ZlibDecompressor:
             return b""
         result = self._decoder.decompress(self._pending, max(0, max_length))
         self._pending = self._decoder.unconsumed_tail
-        self.needs_input = not self._pending and (
-            max_length < 0 or len(result) < max_length
-        )
+        self.needs_input = not self._pending
         if self.eof:
             self.needs_input = False
         return result
