@@ -10,6 +10,20 @@ permissions:
   contents: read
 
 jobs:
+  static-analysis:
+    name: Python static analysis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install analysis tools
+        run: |
+          python -m pip install pyright==1.1.414
+          python scripts/install_test_dependencies.py
+      - run: pyright
+
   test:
     name: Python ${{ matrix.python }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
@@ -70,7 +84,7 @@ jobs:
   automatic-release:
     name: Automatic Release Check
     if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
-    needs: [test, rust, minimum-rust]
+    needs: [static-analysis, test, rust, minimum-rust]
     permissions:
       actions: write
       contents: write

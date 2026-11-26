@@ -28,3 +28,13 @@ exclude = ["GH_TOKEN*"]
 addopts = "-ra"
 testpaths = ["tests"]
 xfail_strict = true
+
+[tool.pyright]
+include = ["python", "scripts", "tests/project"]
+extraPaths = ["python", "scripts"]
+pythonVersion = "3.11"
+typeCheckingMode = "off"
+analyzeUnannotatedFunctions = true
+reportUnboundVariable = "error"
+reportPossiblyUnboundVariable = "error"
+reportUndefinedVariable = "error"
