@@ -1,22 +1,33 @@
 # CPython
 
-The zlib and gzip tests and the Python gzip implementation come from CPython
+The zlib tests come from CPython
 v3.14.0, commit `ebf955df7a89ed0c7968f79faec1de49f61ed7cb`:
 <https://github.com/python/cpython/tree/ebf955df7a89ed0c7968f79faec1de49f61ed7cb>.
-This is the Python release available when zlib-rs 0.5.3 was published.
 The PSF license is included at `licenses/cpython/LICENSE`.
 
+The gzip implementation, stream helpers and gzip tests come from CPython main,
+commit `b0b000527e895a2882259a6a4b5bdfbf5618c54a` (2026-11-26):
+<https://github.com/python/cpython/tree/b0b000527e895a2882259a6a4b5bdfbf5618c54a>.
+The source files are `Lib/gzip.py`, `Lib/compression/_common/_streams.py` and
+`Lib/test/test_gzip.py`.
+
 `test_zlib.py` and `test_gzip.py` retain their upstream assertions, with these
-adaptations:
+adaptations for this package and Python 3.11 or newer:
 
 - Import `zlib_rust` and `zlib_rust.gzip` instead of the standard-library modules.
 - Gzip command-line subprocesses invoke `zlib_rust.gzip` too, so they test the
   installed package rather than the standard library.
-- Four Python 3.14 unittest assertions (`assertHasAttr` and `assertIsSubclass`)
+- Python 3.14 unittest assertions (`assertHasAttr` and `assertIsSubclass`)
   use equivalent `assertTrue(hasattr(...))` and `assertTrue(issubclass(...))`
   expressions, allowing the same tests to run on Python 3.11–3.13.
 - Compute `is_s390x` using `platform.machine()` because the older test support
   harness does not export that constant.
+- The gzip CLI tests disable color through environment variables instead of
+  `force_not_colorized_test_class`, which the older test harness lacks.
+- Gzip's implicit write-mode tests include `wb+`, `ab+` and `xb+` only on
+  Python 3.15 or newer. Earlier interpreters report these modes as `rb+`, so
+  gzip cannot distinguish them from a file opened for reading. This follows
+  CPython [gh-69528 / GH-137834](https://github.com/python/cpython/pull/137834).
 
 The test support package is copied from CPython v3.13.0, commit
 `60403a5409ff2c3f3b07dd2ca91a7a3e096839c7`, without changes. Using this version
@@ -34,10 +45,12 @@ API. Non-default compression configuration is unavailable through 0.6.7; 0.6.8
 adds it and removes those expectations. Stream copying remains unavailable. Successful format/window combinations are separately tested in
 the project suite so the error-message expectation does not hide their behavior.
 
-`python/zlib_rust/gzip.py` and `_gzip_streams.py` are copied from `Lib/gzip.py`
-and `Lib/compression/_common/_streams.py` at the same v3.14.0 commit. Gzip imports
-our codec and its local copy of the stream helpers. Its CLI omits the Python
-3.14-only argparse `color` keyword. Codec and file-format behavior is unchanged.
+`python/zlib_rust/gzip.py` imports our codec and its local copy of the stream
+helpers. Its CLI uses `runpy._remove_sys_path0()` where available. On older
+interpreters it removes copies of the initial `sys.path[0]` directly, unless
+safe-path mode is enabled or that path is the standard-library directory.
+Those interpreters do not expose the original path through `sys._path0`.
+`_gzip_streams.py` is copied without changes.
 
 Two additional tests, `test_decompress_flush_corrupt_stream` and
 `test_decompress_flush_twice`, are copied unchanged from CPython commit
