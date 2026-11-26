@@ -179,6 +179,17 @@ def test_huffman_only_strategy_disables_repeated_string_matching():
     assert len(huffman_only) > len(regular) * 10
 
 
+@pytest.mark.parametrize("module", [zlib, stdlib_zlib])
+def test_no_flush_is_a_noop_after_finishing_compression(module):
+    encoder = module.compressobj()
+    payload = b"finished stream"
+    compressed = encoder.compress(payload) + encoder.flush()
+    assert encoder.flush(module.Z_NO_FLUSH) == b""
+    assert stdlib_zlib.decompress(compressed) == payload
+    with pytest.raises(module.error):
+        encoder.compress(b"more input")
+
+
 @pytest.mark.parametrize("dictionary", [None, b"wrong dictionary"])
 def test_flush_after_dictionary_error_raises(dictionary):
     encoder = stdlib_zlib.compressobj(zdict=b"shared dictionary")

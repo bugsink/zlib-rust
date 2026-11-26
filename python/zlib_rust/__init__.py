@@ -100,13 +100,13 @@ class _Compress:
 
     def flush(self, mode=Z_FINISH, /):
         mode = _c_int(mode)
+        if mode == Z_NO_FLUSH:
+            return b""
         with self._lock:
             if self._finished:
                 raise error("Error -2 while flushing: inconsistent stream state")
             if mode not in range(6):
                 raise error("Error -2 while flushing: invalid flush mode")
-            if mode == Z_NO_FLUSH:
-                return b""
             result = self._inner.process(b"", mode)
             if mode == Z_FINISH:
                 self._finished = True
