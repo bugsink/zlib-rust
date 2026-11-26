@@ -50,6 +50,20 @@ are available on every supported Python version.
 The binding forbids unsafe Rust and releases the GIL during codec operations.
 Package versions follow the pinned zlib-rs crate version.
 
+`__version__` identifies this Python package; `ZLIB_RS_VERSION` identifies the
+pinned Rust engine. `ZLIB_VERSION` and `ZLIB_RUNTIME_VERSION` follow zlib-rs's
+[`zlibVersion()` convention](https://github.com/trifectatechfoundation/zlib-rs/blob/v0.6.9/libz-rs-sys/src/lib.rs#L2122-L2158):
+`1.3.0-zlib-rs-0.6.9` identifies both its zlib API compatibility level and its
+Rust release. They are equal because the engine is linked into the wheel;
+there is no separately loaded zlib library or C header version.
+Python 3.16's `zlib_version` alias and four-field `ZLIB_VERSION_INFO` and
+`zlib_version_info` named tuples are also available on older Python versions.
+
+CPython's unrelated, fixed `zlib.__version__ == "1.0"` is
+[deprecated from Python 3.15](https://docs.python.org/3.15/whatsnew/3.15.html#deprecated).
+It is not the compression library's version. This independently released
+package keeps its own version in `__version__` without that deprecation.
+
 ## Development
 
 Install Rust 1.85 or newer and Python 3.11 or newer. Build a wheel with

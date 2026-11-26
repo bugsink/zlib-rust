@@ -1,5 +1,6 @@
 """Python's zlib interface, backed by zlib-rs."""
 
+from collections import namedtuple as _namedtuple
 from importlib.metadata import version
 from operator import index
 from threading import Lock
@@ -9,7 +10,11 @@ from . import _zlib_rust as _native
 
 __version__ = version("zlib-rust")
 ZLIB_RS_VERSION = __version__.split(".post")[0]
-ZLIB_VERSION = ZLIB_RUNTIME_VERSION = "1.3.1"
+# Follow zlib-rs's zlibVersion(): API compatibility, followed by the Rust release.
+# There is no separately loaded library: the pinned engine is linked into the wheel.
+ZLIB_VERSION = ZLIB_RUNTIME_VERSION = zlib_version = f"1.3.0-zlib-rs-{ZLIB_RS_VERSION}"
+_VersionInfo = _namedtuple("zlib_version_info", "major minor revision subversion")
+ZLIB_VERSION_INFO = zlib_version_info = _VersionInfo(1, 3, 0, 0)
 error = _native.error
 
 DEFLATED = 8
