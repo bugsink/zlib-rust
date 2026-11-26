@@ -1,15 +1,11 @@
 # CPython
 
-The zlib tests come from CPython
-v3.14.0, commit `ebf955df7a89ed0c7968f79faec1de49f61ed7cb`:
-<https://github.com/python/cpython/tree/ebf955df7a89ed0c7968f79faec1de49f61ed7cb>.
-The PSF license is included at `licenses/cpython/LICENSE`.
-
-The gzip implementation, stream helpers and gzip tests come from CPython main,
+The zlib tests, gzip implementation, stream helpers and gzip tests come from CPython main,
 commit `b0b000527e895a2882259a6a4b5bdfbf5618c54a` (2026-11-26):
 <https://github.com/python/cpython/tree/b0b000527e895a2882259a6a4b5bdfbf5618c54a>.
-The source files are `Lib/gzip.py`, `Lib/compression/_common/_streams.py` and
-`Lib/test/test_gzip.py`.
+The source files are `Lib/test/test_zlib.py`, `Lib/gzip.py`,
+`Lib/compression/_common/_streams.py` and `Lib/test/test_gzip.py`.
+The PSF license is included at `licenses/cpython/LICENSE`.
 
 `test_zlib.py` and `test_gzip.py` retain their upstream assertions, with these
 adaptations for this package and Python 3.11 or newer:
@@ -22,6 +18,10 @@ adaptations for this package and Python 3.11 or newer:
   expressions, allowing the same tests to run on Python 3.11–3.13.
 - Compute `is_s390x` using `platform.machine()` because the older test support
   harness does not export that constant.
+- Omit `TestModule.test_deprecated_module_attributes`: CPython deprecates its
+  fixed `zlib.__version__ == "1.0"`, whereas this independently released package
+  uses `__version__` for its package version. The library-version assertions
+  remain unchanged, including Python 3.16's structured version information.
 - The gzip CLI tests disable color through environment variables instead of
   `force_not_colorized_test_class`, which the older test harness lacks.
 - Gzip's implicit write-mode tests include `wb+`, `ab+` and `xb+` only on
@@ -52,8 +52,9 @@ safe-path mode is enabled or that path is the standard-library directory.
 Those interpreters do not expose the original path through `sys._path0`.
 `_gzip_streams.py` is copied without changes.
 
-Two additional tests, `test_decompress_flush_corrupt_stream` and
-`test_decompress_flush_twice`, are copied unchanged from CPython commit
-`54426877bd7ea4e532f5d531a2958d5aa1c29f7c` ([gh-156173](https://github.com/python/cpython/pull/156176)).
-They cover the newer behavior where flush reports corrupt input instead of
-silently returning output. This fixes behavior present in the v3.14.0 baseline.
+The zlib test baseline includes the fixes for corrupt-stream flush errors
+([gh-156173 / GH-156176](https://github.com/python/cpython/pull/156176)),
+clearing `unconsumed_tail` at EOF
+([gh-158169 / GH-158177](https://github.com/python/cpython/pull/158177)), and
+negative checksum-combine lengths
+([gh-156180 / GH-156181](https://github.com/python/cpython/pull/156181)).
