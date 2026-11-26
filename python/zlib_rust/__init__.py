@@ -227,7 +227,7 @@ def compressobj(
 def decompressobj(wbits=MAX_WBITS, zdict=b""):
     wbits = _c_int(wbits)
     if not (
-        wbits == 0
+        wbits in (0, 16, 32)
         or -15 <= wbits <= -8
         or 8 <= wbits <= 15
         or 24 <= wbits <= 31

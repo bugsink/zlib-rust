@@ -20,6 +20,19 @@ def test_formats_interoperate(wbits, level):
     assert zlib.decompress(stdlib_zlib.compress(data, level, wbits), wbits) == data
 
 
+@pytest.mark.parametrize("module", [zlib, stdlib_zlib])
+@pytest.mark.parametrize(
+    "wbits,format_wbits", [(0, 9), (0, 15), (16, 31), (32, 9), (32, 15), (32, 31)]
+)
+def test_decompression_can_infer_window_size(module, wbits, format_wbits):
+    payload = b"window size from the stream" * 100
+    compressed = stdlib_zlib.compress(payload, wbits=format_wbits)
+    assert module.decompress(compressed, wbits) == payload
+    decoder = module.decompressobj(wbits)
+    assert decoder.decompress(compressed) == payload
+    assert decoder.eof
+
+
 @given(st.binary(max_size=20000), st.integers(min_value=0, max_value=9))
 def test_independent_codec_round_trips(data, level):
     assert stdlib_zlib.decompress(zlib.compress(data, level)) == data
