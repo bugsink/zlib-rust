@@ -20,8 +20,11 @@ adaptations for this package and Python 3.11 or newer:
   harness does not export that constant.
 - Omit `TestModule.test_deprecated_module_attributes`: CPython deprecates its
   fixed `zlib.__version__ == "1.0"`, whereas this independently released package
-  uses `__version__` for its package version. The library-version assertions
-  remain unchanged, including Python 3.16's structured version information.
+  uses `__version__` for its package version.
+- Omit `VersionTestCase.test_zlibng_version` and its helper: this package uses
+  zlib-rs, so zlib-ng metadata is inapplicable. The zlib library-version
+  assertions remain unchanged, including Python 3.16's structured version
+  information.
 - The gzip CLI tests disable color through environment variables instead of
   `force_not_colorized_test_class`, which the older test harness lacks.
 - Gzip's implicit write-mode tests include `wb+`, `ab+` and `xb+` only on

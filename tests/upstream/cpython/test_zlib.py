@@ -109,31 +109,6 @@ class VersionTestCase(unittest.TestCase):
                          _parse_version(zlib.zlib_version))
         self.assertEqual(zlib.ZLIB_RUNTIME_VERSION, zlib.zlib_version)
 
-    def _test_zlibng_version(self, v):
-        self.assertIsInstance(v[:], tuple)
-        self.assertEqual(len(v), 3)
-        self.assertIsInstance(v[0], int)
-        self.assertIsInstance(v[1], int)
-        self.assertIsInstance(v[2], int)
-        self.assertIsInstance(v.major, int)
-        self.assertIsInstance(v.minor, int)
-        self.assertIsInstance(v.revision, int)
-        self.assertEqual(v[0], v.major)
-        self.assertEqual(v[1], v.minor)
-        self.assertEqual(v[2], v.revision)
-        self.assertGreaterEqual(v.major, 0)
-        self.assertGreaterEqual(v.minor, 0)
-        self.assertGreaterEqual(v.revision, 0)
-
-    @unittest.skipUnless(hasattr(zlib, 'ZLIBNG_VERSION'), 'requires zlib-ng')
-    def test_zlibng_version(self):
-        if support.verbose:
-            print(f'ZLIBNG_VERSION = {zlib.ZLIBNG_VERSION}', flush=True)
-            print(f'ZLIBNG_VERSION_INFO = {zlib.ZLIBNG_VERSION_INFO}',
-                  flush=True)
-        self._test_zlibng_version(zlib.ZLIBNG_VERSION_INFO)
-        self.assertEqual(zlib.ZLIBNG_VERSION,
-                         '%d.%d.%d' % zlib.ZLIBNG_VERSION_INFO)
 
 
 class ChecksumTestCase(unittest.TestCase):
