@@ -258,6 +258,51 @@ def test_no_flush_is_a_noop_after_finishing_compression(module):
         encoder.compress(b"more input")
 
 
+@pytest.mark.parametrize("module", [zlib, stdlib_zlib])
+@pytest.mark.parametrize("level", [0, 6])
+def test_compressor_can_finish_after_a_rejected_flush(module, level):
+    encoder = module.compressobj(level)
+    with pytest.raises(module.error):
+        encoder.flush(module.Z_TREES)
+    result = []
+    payload = b"after rejected flush"
+    # A retained lock would hang the next call. A daemon thread bounds the test.
+    worker = threading.Thread(
+        target=lambda: result.append(encoder.compress(payload) + encoder.flush()),
+        daemon=True,
+    )
+    worker.start()
+    worker.join(timeout=10)
+    assert not worker.is_alive()
+    assert len(result) == 1
+    assert stdlib_zlib.decompress(result[0]) == payload
+
+
+@pytest.mark.parametrize("module", [zlib, stdlib_zlib])
+@pytest.mark.parametrize("wbits", [32, 41, 47])
+@pytest.mark.parametrize("format_wbits", [9, 31])
+def test_format_detection_after_initial_flush_with_one_byte_reads(
+    module, wbits, format_wbits
+):
+    payload = b"one-byte format detection"
+    compressed = stdlib_zlib.compress(payload, wbits=format_wbits)
+    decoder = module.decompressobj(wbits)
+    assert decoder.flush() == b""
+    result = b"".join(decoder.decompress(bytes([byte])) for byte in compressed)
+    assert result == payload
+    assert decoder.eof
+
+
+@pytest.mark.parametrize("wbits", [-15, 15, 31])
+@pytest.mark.parametrize("length", [0, 16383, 16384, 16385, 32768])
+def test_stream_end_is_required_at_output_buffer_boundaries(wbits, length):
+    payload = b"a" * length
+    compressed = stdlib_zlib.compress(payload, wbits=wbits)
+    assert zlib.decompress(compressed, wbits) == payload
+    with pytest.raises(zlib.error):
+        zlib.decompress(compressed[:-1], wbits)
+
+
 @pytest.mark.parametrize("dictionary", [None, b"wrong dictionary"])
 def test_flush_after_dictionary_error_raises(dictionary):
     encoder = stdlib_zlib.compressobj(zdict=b"shared dictionary")
